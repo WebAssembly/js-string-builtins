@@ -12,13 +12,13 @@ However, the overhead of importing glue code is prohibitive for primitives such 
 
 This proposal aims to provide a minimal and general mechanism for importing specific JavaScript primitives for efficient usage in WebAssembly code.
 
-This is done by first adding a set of builtin functions for performing JavaScript String operations. These builtin functions mirror a subset of the [JavaScript String API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String) and adapt it to be efficiently callable without JavaScript glue code.
+This is done by first adding a set of wasm builtin functions for performing JavaScript String operations. These builtin functions mirror a subset of the [JavaScript String API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String) and adapt it to be efficiently callable without JavaScript glue code.
 
-Then a mechanism for importing modules containing these builtins (builtin modules) is added to the WebAssembly JS-API. These modules exist in a new reserved import namespace `wasm:` that is enabled at compile-time with a flag.
+Then a mechanism for importing these wasm builtin functions is added to the WebAssembly JS-API. These builtins are grouped in modules and exist in a new reserved import namespace `wasm:` that is enabled at compile-time with a flag.
 
-These two pieces in combination allow runtimes to reliably emit optimal code sequences for JavaScript String operations within WebAssembly modules. In the future, other builtin objects or primitives can be exposed through new builtins.
+These two pieces in combination allow runtimes to reliably emit optimal code sequences for JavaScript String operations within WebAssembly modules. In the future, other JS builtin objects or JS primitives can be exposed through new wasm builtins.
 
-## Do we need builtins?
+## Do we need new wasm builtin functions?
 
 It is already possible today to import JS builtin functions (such as String.prototoype.getCharCodeAt) from wasm modules. Instead of defining new wasm specific-builtins, we could just re-use those directly.
 
@@ -28,19 +28,21 @@ The first problem is that existing API’s require a calling convention conversi
 
 It seems that creating new importable definitions that adapt existing JS primitives to WebAssembly is simpler and more flexible in the future.
 
-## Do we need builtin modules?
+## Do we need a new import mechanism for wasm builtin functions?
 
 There is a variety of execution techniques for WebAssembly. Some WebAssembly engines compile modules eagerly (at WebAssembly.compile), some use interpreters and dynamic tiering, and some use on-demand compilation (after instantiation) and dynamic tiering.
 
-If we just have builtin functions, it would be possible to normally import them without any work to add builtin modules. The main issue is that imported values are not known until instantiation, and so engines that compile eagerly would be unable to generate specialized code to these imports.
+If we just have builtin functions, it would be possible to normally import them normally through instantiation. However this would prevent engines from using eager compilation when builtins are in use.
 
 It seems desirable to support a variety of execution techniques, especially because engines may support multiple depending on heuristics or change them over time.
 
-By adding builtin modules that are in a reserved and known namespace `:wasm`, engines can know that these builtin functions are being used at `WebAssembly.compile` time and generate optimal code for them.
+By adding builtins that are in a reserved and known namespace (`wasm:`), engines can know that these builtin functions are being used at `WebAssembly.compile` time and generate optimal code for them.
 
 ## Goals for builtins
 
 Builtins should not provide any new abilities to WebAssembly that JS doesn't already have. They are intended to just wrap existing primitives in such a manner that WebAssembly can efficiently use them. In the cases the primitive already has a name, we should re-use it and not invent a new one.
+
+Most builtins should be simple and do little work outside of calling into the JS functionality to do the operation. The one exception is for operations that convert between a JS primitive and a wasm primitive, such as between JS strings/arrays/linear memory. In this case, the builtin may need some non-trivial code to perform the operation. In these cases, it's still expected that the operation is just semantically copying information and not substantially transforming it into a new interpretation.
 
 The standardization of wasm builtins will be governed by the WebAssembly standards process and would exist in the JS-API document.
 
@@ -48,82 +50,143 @@ The bar for adding a new builtin would be that it enables significantly better c
 
 ## Function builtins
 
-Function builtins are an instance of `WebAssembly.Function` and have a function type. One conceptualization is that they are a WebAssembly function on the outside and a JavaScript function on the inside. This combination allows efficient adaptation of primitives.
+Function builtins are defined with an external wasm function type, and internal JS-defined behavior. They have the same semantics as following ['create a host function'](https://webassembly.github.io/spec/js-api/#create-a-host-function) for the wasm function type and JS code given to get a wasm `funcaddr` that can be imported.
 
-Their behavior would be defined using algorithmic steps similar to the WebIDL or EcmaScript standards. If possible, we could define them using equivalent JavaScript source code to emphasize that these do not provide any new abilities.
+There are several implications of this:
+  - Calling a function builtin from wasm will have the wasm parameters converted to JS values, and JS results converted back to wasm values.
+  - Exported function builtins are wrapped using ['create a new Exported function'](https://webassembly.github.io/spec/js-api/#a-new-exported-function).
+  - Function builtins must be imported with the correct type.
+  - Function builtins may become `funcref`, stored in tables, etc.
 
 ## Type builtins
 
 Type builtins could be an instance of the `WebAssembly.Type` interface provided by the [type-imports](https://github.com/webassembly/type-imports) proposal. The values contained in a type builtin would be specified with a predicate.
 
-## Builtin modules
+This proposal does not add any type builtins, as the design around type-imports is in flux.
 
-Builtin modules provide a collection of function or type builtins that can be imported. Each builtin module has a name, such as `js-string`, and lives under the `wasm:` namespace. A full import specifier would therefore be `(import "wasm:js-string" "equals" ...)`.
+## Using builtins
 
-The JS-API does not reserve a `wasm:` namespace today, so modules theoretically could already be using this namespace. Additionally, some users may wish to disable this feature for modules they compile so they could polyfill it. This feature is therefore opt-in on an individual builtin-module basis.
+Every builtin has a name, and builtins are grouped into collections with a name that matches the interface they are mirroring.
 
-To just enabled the `js-string` module, a user would compile with:
+An example import specifier could therefore be `(import "wasm:js-string" "equals" ...)`.
+
+The JS-API does not reserve a `wasm:` namespace today, so modules theoretically could already be using this namespace. Additionally, some users may wish to disable this feature for modules they compile so they could polyfill it. This feature is therefore opt-in via flags for each interface.
+
+To just enabled `js-string` builtins, a user would compile with:
 ```
-WebAssembly.compile(bytes, { builtinModules: ['js-string'] });
+WebAssembly.compile(bytes, { builtins: ['js-string'] });
 ```
 
 The full extension to the JS-API WebIDL is:
 ```
 dictionary WebAssemblyCompileOptions {
-    optional sequence<USVString> builtinModules;
+    optional sequence<USVString> builtins;
 }
 
+[LegacyNamespace=WebAssembly, Exposed=*]
 interface Module {
   constructor(BufferSource bytes, optional WebAssemblyCompileOptions options);
   ...
 }
 
+[Exposed=*]
 namespace WebAssembly {
-  Promise<Module> compile(
-    BufferSource bytes,
-    optional WebAssemblyCompileOptions options);
-  ...
+    # Validate accepts compile options for feature detection.
+    # See below for details.
+    boolean validate(
+      BufferSource bytes,
+      optional WebAssemblyCompileOptions options);
+
+    # Async compile accepts compile options.
+    Promise<Module> compile(
+      BufferSource bytes,
+      optional WebAssemblyCompileOptions options);
+
+    # Async instantiate overload with bytes parameters does accept compile
+    # options.
+    Promise<WebAssemblyInstantiatedSource> instantiate(
+      BufferSource bytes,
+      optional object importObject,
+      optional WebAssemblyCompileOptions options
+    );
+
+    # Async instantiate overload with module parameter does not accept compile
+    # options and remains the same.
+    Promise<Instance> instantiate(
+      Module moduleObject,
+      optional object importObject
+    );
 };
 ```
 
-A wasm module that has enabled a wasm builtin module will have the specific import specifier, such as `wasm:js-string` for that module available and eagerly applied.
+A wasm module that has enabled builtins will have the specific import specifier, such as `wasm:js-string` for that interface available and eagerly applied.
 
 Concretely this means that imports that refer to that specifier will be eagerly checked for link errors at compile time, those imports will not show up in `WebAssembly.Module.imports()`, and those imports will not need to be provided at instantiation time.
 
-When the module is instantiated, a unique instantiation of the builtin module is created. This means that re-exports of builtin functions will have different identities if they come from different instances. This is a useful property for future extensions to bind memory to builtins or evolve the types as things like type-imports or a core stringref type are added (see below).
+When the module is instantiated, a unique instantiation of the builtins are created. This means that re-exports of builtin functions will have different identities if they come from different instances. This is a useful property for future extensions to bind memory to builtins or evolve the types as things like type-imports or a core stringref type are added (see below).
 
 ## Feature detection
 
-Users may wish to detect if a specific builtin module is available in their system.
+Users may wish to detect if a specific builtin is available in their system.
 
-A simple option is to add `WebAssembly.hasBuiltinModule(name)` method. This is likely too coarse grained though, users may wish to know if a specific function in a builtin module is available, as new ones may be added over time.
-
-A more general option would then be to extend `WebAssembly.validate` to also take a list of builtin modules to enable, like compile does. After validating the module, the eager link checking that compile does is also performed. This would allow checking for the presence of individual parts of a builtin module.
+For this purpose, `WebAssembly.validate` is extended to take a list of builtins to enable, like compile does. After validating the module, the eager link checking that compile does is also performed. Users can inspect the result of validate on modules importing builtins to see if they are supported.
 
 ## Polyfilling
 
-If a user wishes to polyfill these imports for some reason, or is running on a system without a builtin module, these imports may be provided as normal through instantiation.
+If a user wishes to polyfill these imports for some reason, or is running on a system without a builtin, these imports may be provided as normal through instantiation.
+
+## UTF8/WTF8 support
+
+As stated above in 'goals for builtins', builtins are intended to just wrap existing primitives and not invent new functionality.
+
+JS Strings are semantically a sequence of 16-bit code units (referred to as char codes in method naming), and there are no builtin operations on them to acquire a UTF-8 or WTF-8 view. This makes it difficult to write wasm builtins for these encodings without introducing significant new logic to them.
+
+There is however, the Encoding API for `TextEncoder`/`TextDecoder` which can be used for UTF-8 support. However, this is technically a separate spec from JS and may not be available on all JS engines (in practice it's available widely). This proposal exposes UTF-8 data conversions using this API under separate `wasm:text-encoder` `wasm:text-decoder` interfaces which are available when the host implements these interfaces.
 
 ## JS String Builtin API
 
-The following is an initial set of function builtins for JavaScript String. The builtin module name is `js-string`. Each example includes pseudo-code illustrating their operation and some descriptive text.
+The following is an initial set of function builtins for JavaScript String. The builtins are exposed under `wasm:js-string`.
 
-TODO: formalize these better.
+All below references to builtins on the Global object (e.g. `String.fromCharCode`) refer to the original version on the Global object before any modifications by user code.
 
-[1]: This is meant to refer to what the original String.fromCharCode / String.fromCodePoint / String.prototype.charCodeAt / String.prototype.codePointAt / String.prototype.substring would do, in the absence of any monkey-patching. In a final version of this specification, we'll have to use more robust phrasing to express that; in the meantime, the given phrasing is more readable.
+The following internal helpers are defined in wasm and used by the below definitions:
 
-[2]: "array.length" is meant to express "load the array's length", in Wasm terms: (array.len (local.get $array)).
+```wasm
+(module
+  (type $array_i16 (array i16))
+  (type $array_i16_mut (array (mut i16)))
 
-[3]: “trap” is meant to emit a wasm trap. This results in a WebAssembly.RuntimeError with the bit set that it is not catchable by exception handling.
+  (func (export "trap")
+    unreachable
+  )
+  (func (export "array_len") (param arrayref) (result i32)
+    local.get 0
+    array.len
+  )
+  (func (export "array_i16_get") (param (ref $array_i16) i32) (result i32)
+    local.get 0
+    local.get 1
+    array.get_u $array_i16
+  )
+  (func (export "array_i16_mut_set") (param (ref $array_i16_mut) i32 i32)
+    local.get 0
+    local.get 1
+    local.get 2
+    array.set $array_i16_mut
+  )
+)
+```
 
 ### "wasm:js-string" "cast"
 
 ```
-function cast(
+func cast(
   string: externref
-) -> externref {
-  if (typeof string !== "string")
-    trap;
+) -> (ref extern) {
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
   return string;
 }
 ```
@@ -131,105 +194,96 @@ function cast(
 ### "wasm:js-string" "test"
 
 ```
-function test(
+func test(
   string: externref
 ) -> i32 {
-  return typeof string === "string" ? 1 : 0;
+  if (string === null ||
+      typeof string !== "string")
+    return 0;
+  return 1;
 }
 ```
 
-### "wasm:js-string" "fromWtf16Array"
+### "wasm:js-string" "fromCharCodeArray"
 
 ```
-func fromWtf16Array(
+/// Convert the specified range of an immutable i16 array into a String,
+/// treating each i16 as an unsigned 16-bit char code.
+///
+/// The range is given by [start, end). This function traps if the range is
+/// outside the bounds of the array.
+///
+/// NOTE: This function only takes an immutable i16 array defined in its own
+/// recursion group.
+///
+/// If this is an issue for toolchains, we can look into how to relax the
+/// function type while still maintaining good performance.
+func fromCharCodeArray(
   array: (ref null (array i16)),
   start: i32,
   end: i32
 ) -> (ref extern)
 {
-  start = ToUint32(start);
-  end = ToUint32(end);
+  // NOTE: `start` and `end` are interpreted as signed 32-bit integers when
+  // converted to JS values using standard conversions. Reinterpret them as
+  // unsigned here.
+  start >>>= 0;
+  end >>>= 0;
 
-  // [2]
-  if (end > array.length || start > end)
-    trap;
+  if (array === null)
+    trap();
+
+  if (start > end ||
+      end > array_len(array))
+    trap();
 
   let result = "";
   for(let i = start; i < end; i++) {
-    // [1], [4]
-    result += String.fromCharCode(array[i]);
+    let charCode = array_i16_get(array, i);
+    result += String.fromCharCode(charCode);
   }
   return result;
 }
 ```
 
-[4]: "array[i]" is meant to express "load the i-th element of the array", in Wasm terms: (array.get_u $i16-array-type (local.get $array) (local.get $i)) for an appropriate $i16-array-type.
-
-Note: This function takes an i16 array defined in its own recursion group. If this is an issue for a toolchain, we can look into how to relax the function type while still maintaining good performance.
-
-### "wasm:js-string" "fromWtf8Array"
+### "wasm:js-string" "copyToCharCodeArray"
 
 ```
-func fromWtf8Array(
-  array: (ref null (array i8)),
-  start: i32,
-  end: i32
-) -> (ref extern)
-{
-  start = ToUint32(start);
-  end = ToUint32(end);
-
-  // [2]
-  if (end > array.length || start > end)
-    trap;
-
-  // This summarizes as: "decode the WTF-8 string stored at array[start:end],
-  // or trap if there is no valid WTF-8 string there".
-  let result = "";
-  while (start < end) {
-    if there is no valid wtf8-encoded code point at array[start]
-      trap;
-    let c be the code point at array[start];
-    // [1]
-    result += String.fromCodePoint(c);
-    increment start by as many bytes as it took to decode c;
-  }
-  return result;
-}
-```
-
-Note to implementers: while this is the only usage of WTF-8 in this document, it shouldn't be very burdensome to implement, because all existing strings in Wasm modules (import/export names, contents of the name section) are already in UTF-8 format, so implementations must already have decoding infrastructure for that. We need the relaxation from UTF-8 to WTF-8 to support WTF-16 based source languages, which may have unpaired surrogates in string constants in existing/legacy code.
-
-### "wasm:js-string" "toWtf16Array"
-
-"start" is the index in the array where the first codeunit of the string will be written.
-
-Returns the number of codeunits written. Traps if the string doesn't fit into the array.
-
-```
-func toWtf16Array(
+/// Copy a string into a pre-allocated mutable i16 array at `start` index.
+///
+/// Returns the number of char codes written, which is equal to the length of
+/// the string.
+///
+/// Traps if the string doesn't fit into the array.
+func copyToCharCodeArray(
   string: externref,
   array: (ref null (array (mut i16))),
   start: i32
 ) -> i32
 {
-  if (typeof string !== "string")
-    trap;
+  // NOTE: `start` is interpreted as a signed 32-bit integer when converted
+  // to a JS value using standard conversions. Reinterpret as unsigned here.
+  start >>>= 0;
 
-  start = ToUint32(start);
+  if (array === null)
+    trap();
 
-  if (start + string.length > array.length)
-    trap;
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
+  // The following addition is safe from overflow as adding two 32-bit integers
+  // cannot overflow Number.MAX_SAFE_INTEGER (2^53-1).
+  if (start + string.length > array_len(array))
+    trap();
 
   for (let i = 0; i < string.length; i++) {
-    // [4], [5]
-    array[start + i] = string.charCodeAt(i);
+    let charCode = string.charCodeAt(i);
+    array_i16_mut_set(array, start + i, charCode);
   }
   return string.length;
 }
 ```
-
-[4]: "array[i] = …" is meant to express "store the value … as the i-th element of the array", in Wasm terms: (array.set $i16-array-type (local.get $array) (local.get $i) (…)) for an appropriate $i16-array-type.
 
 ### "wasm:js-string" "fromCharCode"
 
@@ -238,11 +292,13 @@ func fromCharCode(
   charCode: i32
 ) -> (ref extern)
 {
-  charCode = ToUint32(charCode);
-  return String.fromCharCode(charCode);  // [1], [4]
+  // NOTE: `charCode` is interpreted as a signed 32-bit integer when converted
+  // to a JS value using standard conversions. Reinterpret as unsigned here.
+  charCode >>>= 0;
+
+  return String.fromCharCode(charCode);
 }
 ```
-[4]: Any charCode > 0xFFFF values are implicitly truncated.
 
 ### "wasm:js-string" "fromCodePoint"
 
@@ -251,11 +307,16 @@ func fromCodePoint(
   codePoint: i32
 ) -> (ref extern)
 {
-  codePoint = ToUint32(codePoint);
-  if (codePoint > 0x10FFFF)
-    trap;
+  // NOTE: `codePoint` is interpreted as a signed 32-bit integer when converted
+  // to a JS value using standard conversions. Reinterpret as unsigned here.
+  codePoint >>>= 0;
 
-  return String.fromCodePoint(codePoint);  // [1]
+  // fromCodePoint will throw a RangeError for values outside of this range,
+  // eagerly check for this an present as a wasm trap.
+  if (codePoint > 0x10FFFF)
+    trap();
+
+  return String.fromCodePoint(codePoint);
 }
 ```
 
@@ -267,14 +328,18 @@ func charCodeAt(
   index: i32
 ) -> i32
 {
-  if (typeof string !== "string")
-    trap;
+  // NOTE: `index` is interpreted as a signed 32-bit integer when converted to
+  // a JS value using standard conversions. Reinterpret as unsigned here.
+  index >>>= 0;
 
-  index = ToUint32(index);
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
   if (index >= string.length)
-    trap;
+    trap();
 
-  return string.charCodeAt(index);  // [1]
+  return string.charCodeAt(index);
 }
 ```
 
@@ -286,14 +351,18 @@ func codePointAt(
   index: i32
 ) -> i32
 {
-  if (typeof string !== "string")
-    trap;
+  // NOTE: `index` is interpreted as a signed 32-bit integer when converted to
+  // a JS value using standard conversions. Reinterpret as unsigned here.
+  index >>>= 0;
 
-  index = ToUint32(index);
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
   if (index >= string.length)
-    trap;
+    trap();
 
-  return string.codePointAt(index);  // [1]
+  return string.codePointAt(index);
 }
 ```
 
@@ -301,27 +370,30 @@ func codePointAt(
 
 ```
 func length(string: externref) -> i32 {
-  if (typeof string !== "string")
-    trap;
+  if (string === null ||
+      typeof string !== "string")
+    trap();
 
   return string.length;
 }
 ```
 
-### "wasm:js-string" "concatenate"
+### "wasm:js-string" "concat"
 
 ```
-func concatenate(
+func concat(
   first: externref,
   second: externref
 ) -> externref
 {
-  if (typeof first !== "string")
-    trap;
-  if (typeof second !== "string")
-    trap;
+  if (first === null ||
+      typeof first !== "string")
+    trap();
+  if (second === null ||
+      typeof second !== "string")
+    trap();
 
-  return first + second;
+  return first.concat(second);
 }
 ```
 
@@ -330,26 +402,30 @@ func concatenate(
 ```
 func substring(
   string: externref,
-  startIndex: i32,
-  endIndex: i32
+  start: i32,
+  end: i32
 ) -> (ref extern)
 {
-  if (typeof string !== "string")
-    trap;
+  // NOTE: `start` and `end` are interpreted as signed 32-bit integers when
+  // converted to JS values using standard conversions. Reinterpret them as
+  // unsigned here.
+  start >>>= 0;
+  end >>>= 0;
 
-  startIndex = ToUint32(startIndex);
-  endIndex = ToUint32(endIndex);
-  if (startIndex > string.length ||
-      startIndex > endIndex)
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
+  // Ensure the range is ordered and within bounds to avoid the complex
+  // behavior that `substring` performs when that is not the case.
+  if (start > end ||
+      end > string.length)
     return "";
 
   // [1]
-  return string.substring(startIndex, endIndex);
+  return string.substring(start, end);
 }
 ```
-
-Note: We could consider allowing negative start/end indices, and adding them to the string's length to compute the effective indices, like String.prototype.slice does it. Is one of these behaviors more convenient for common use cases? Arguably it is more fitting with Wasm's style to only accept obviously-valid (i.e. in-bounds) parameters, and leave it to calling code to decide whether other values (positive out-of-bounds and/or negative) can occur at all, and if yes, how to handle them (map into bounds somehow, or reject).
-Note: Taking that thought one step further, we could consider throwing exceptions when startIndex > endIndex or startIndex > string.length or endIndex > string.length. If we do so, we should keep in mind that allowing empty slices (startIndex == endIndex) can be useful when this situation arises dynamically in string-processing algorithms. It is unlikely that throwing instead of returning an empty string in these cases would offer performance benefits.
 
 ### "wasm:js-string" "equals"
 
@@ -359,10 +435,14 @@ func equals(
   second: externref
 ) -> i32
 {
-  if (first !== null && typeof first !== "string")
-    trap;
-  if (second !== null && typeof second !== "string")
-    trap;
+  // Explicitly allow null strings to be compared for equality as that is
+  // meaningful.
+  if (first !== null &&
+      typeof first !== "string")
+    trap();
+  if (second !== null &&
+      typeof second !== "string")
+    trap();
   return first === second ? 1 : 0;
 }
 ```
@@ -375,14 +455,205 @@ function compare(
   second: externref
 ) -> i32
 {
-  if (typeof first !== "string")
-    trap;
-  if (typeof second !== "string")
-    trap;
+  // Explicitly do not allow null strings to be compared, as there is no
+  // meaningful ordering given by the JS `<` operator.
+  if (first === null ||
+      typeof first !== "string")
+    trap();
+  if (second === null ||
+      typeof second !== "string")
+    trap();
 
   if (first === second)
     return 0;
   return first < second ? -1 : 1;
+}
+```
+
+## Encoding API
+
+The following is an initial set of function builtins for the [`TextEncoder` interface](https://encoding.spec.whatwg.org/#interface-textencoder) and [`TextDecoder` interface](https://encoding.spec.whatwg.org/#interface-textdecoder) interfaces. These builtins are exposed under `wasm:text-encoder` and `wasm:text-decoder`, respectively.
+
+All below references to builtins on the Global object (e.g. `String.fromCharCode`) refer to the original version on the Global object before any modifications by user code.
+
+The following internal helpers are defined in wasm and used by the below definitions:
+
+```wasm
+(module
+  (type $array_i8 (array i8))
+  (type $array_i8_mut (array (mut i8)))
+
+  (func (export "trap")
+    unreachable
+  )
+  (func (export "array_len") (param arrayref) (result i32)
+    local.get 0
+    array.len
+  )
+  (func (export "array_i8_get") (param (ref $array_i8) i32) (result i32)
+    local.get 0
+    local.get 1
+    array.get_u $array_i8
+  )
+  (func (export "array_i8_mut_new") (param i32) (result (ref $array_i8_mut))
+    local.get 0
+    array.new_default $array_i8_mut
+  )
+  (func (export "array_i8_mut_set") (param (ref $array_i8_mut) i32 i32)
+    local.get 0
+    local.get 1
+    local.get 2
+    array.set $array_i8_mut
+  )
+)
+```
+
+### "wasm:text-decoder" "decodeStringFromUTF8Array"
+
+```
+/// Decode the specified range of an i8 array using UTF-8 into a string.
+///
+/// The range is given by [start, end). This function traps if the range is
+/// outside the bounds of the array.
+///
+/// NOTE: This function only takes an immutable i8 array defined in its own
+/// recursion group.
+///
+/// If this is an issue for toolchains, we can look into how to relax the
+/// function type while still maintaining good performance.
+func decodeStringFromUTF8Array(
+  array: (ref null (array i8)),
+  start: i32,
+  end: i32
+) -> (ref extern)
+{
+  // NOTE: `start` and `end` are interpreted as signed 32-bit integers when
+  // converted to JS values using standard conversions. Reinterpret them as
+  // unsigned here.
+  start >>>= 0;
+  end >>>= 0;
+
+  if (array === null)
+    trap();
+
+  if (start > end ||
+      end > array_len(array))
+    trap();
+
+  // Inialize a UTF-8 decoder with the default options
+  let decoder = new TextDecoder("utf-8", {
+    fatal: false,
+    ignoreBOM: false,
+  });
+
+  // Copy the wasm array into a Uint8Array for decoding
+  let bytesLength = end - start;
+  let bytes = new Uint8Array(bytesLength);
+  for (let i = start; i < end; i++) {
+    bytes[i - start] = array_i8_get(array, i);
+  }
+
+  return decoder.decode(bytes);
+}
+```
+
+### "wasm:text-encoder" "measureStringAsUTF8"
+
+```
+/// Returns the number of bytes string would take when encoded as UTF-8.
+///
+/// Traps if the string doesn't fit into the array.
+func measureStringAsUTF8(
+  string: externref,
+) -> i32
+{
+  // NOTE: `start` is interpreted as a signed 32-bit integer when converted
+  // to a JS value using standard conversions. Reinterpret as unsigned here.
+  start >>>= 0;
+
+  if (array === null)
+    trap();
+
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
+  // Encode the string into bytes using UTF-8
+  let encoder = new TextEncoder();
+  let bytes = encoder.encode(string);
+
+  // Trap if the number of bytes is larger than can fit into an i32
+  if (bytes.length > 0xffff_ffff) {
+    trap();
+  }
+  return bytes.length;
+}
+```
+
+### "wasm:text-encoder" "encodeStringIntoUTF8Array"
+
+```
+/// Encode a string into a pre-allocated mutable i8 array at `start` index using
+/// the UTF-8 encoding.
+///
+/// Returns the number of bytes written.
+///
+/// Traps if the string doesn't fit into the array.
+func encodeStringIntoUTF8Array(
+  string: externref,
+  array: (ref null (array (mut i8))),
+  start: i32
+) -> i32
+{
+  // NOTE: `start` is interpreted as a signed 32-bit integer when converted
+  // to a JS value using standard conversions. Reinterpret as unsigned here.
+  start >>>= 0;
+
+  if (array === null)
+    trap();
+
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
+  // Encode the string into bytes using UTF-8
+  let encoder = new TextEncoder();
+  let bytes = encoder.encode(string);
+
+  // The following addition is safe from overflow as adding two 32-bit integers
+  // cannot overflow Number.MAX_SAFE_INTEGER (2^53-1).
+  if (start + bytes.length > array_len(array))
+    trap();
+
+  for (let i = 0; i < bytes.length; i++) {
+    array_i8_mut_set(array, start + i, bytes[i]);
+  }
+
+  return bytes.length;
+}
+```
+
+### "wasm:text-encoder" "encodeStringToUTF8Array"
+
+```
+/// Encode a string into a new mutable i8 array using UTF-8.
+func encodeStringToUTF8Array(
+  string: externref
+) -> (ref (array (mut i8)))
+{
+  if (string === null ||
+      typeof string !== "string")
+    trap();
+
+  // Encode the string into bytes using UTF-8
+  let encoder = new TextEncoder();
+  let bytes = encoder.encode(string);
+
+  let array = array_i8_mut_new(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    array_i8_mut_set(array, i, bytes[i]);
+  }
+  return array;
 }
 ```
 
@@ -404,7 +675,7 @@ A quick example:
   (; memory 0 ;)
   (import ... (memory ...))
 
-  (; bound to memory 0 through the JS-API instantiating the builtin module ;)
+  (; bound to memory 0 through the JS-API instantiating the builtins ;)
   (import "wasm:js-string" "encodeStringToMemoryUTF16" (func ...))
 )
 ```
@@ -424,15 +695,3 @@ The difficulty is how to do this in a backwards compatible way. If we, for examp
 One option would be to version the name of the function builtins, and add a new one for the more advanced type signature.
 
 Another option to do this would be to extend the JS-API to inspect the function types used when importing these builtins to determine whether to provide it the 'advanced type' version or the 'basic type' version. This would be a heuristic, something like checking if the type refers to a type import or not.
-
-### UTF-8 and WTF-8 support
-
-There are no JS builtins available to get a UTF-8 or WTF-8 view of a JS String.
-
-One option would be to specify wasm builtins in terms of the Web TextEncoder and TextDecoder interfaces. But this is probably a 'layering' violation, and is not clear what this means on JS runtimes outside the web.
-
-Another option around this would be to directly refer to the UTF-8/WTF-8 specs in the JS-API and write out the algorithms we need. However, this probably violates the goal of not creating a new String API.
-
-A final option would be to get TC39 to add the methods we need to JS Strings, so that we can use them in wasm builtins. This could take some time though, and may not be possible if TC39 does not find these methods worthwile.
-
-This needs more thought and discussion.
