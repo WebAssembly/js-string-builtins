@@ -6,7 +6,7 @@
   <meta content="ED" name="w3c-status">
   <meta content="Bikeshed version 6270e4735, updated Tue Aug 6 12:12:30 2024 -0700" name="generator">
   <link href="https://www.w3.org/TR/wasm-js-api-2/" rel="canonical">
-  <meta content="a3c7562be0c8fbe9dd6d289360e6fa26ed3b29cc" name="revision">
+  <meta content="1937e008a5010b9b5c72519b46e702f87ed0c28a" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 emu-const {
@@ -1133,7 +1133,9 @@ This mapping is used to ensure that, for a given <a data-link-type="dfn" href="h
        <li data-md>
         <p>Let <var>exportsObject</var> be the result of <a data-link-type="dfn" href="#instantiate-a-builtin-set" id="ref-for-instantiate-a-builtin-set">instantiate a builtin set</a> with <var>builtinSetName</var></p>
        <li data-md>
-        <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#map-set" id="ref-for-map-set">Set</a> <var>builtinOrStringImports</var>[<var>builtinSetName</var>] to <var>exportsObject</var></p>
+        <p>Let <var>builtinSetQualifiedName</var> be <var>builtinSetName</var> prefixed with "wasm:"</p>
+       <li data-md>
+        <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#map-set" id="ref-for-map-set">Set</a> <var>builtinOrStringImports</var>[<var>builtinSetQualifiedName</var>] to <var>exportsObject</var></p>
       </ol>
      <li data-md>
       <p>If <var>importedStringModule</var> is not null,</p>
@@ -3262,7 +3264,7 @@ They expose the same interface as native JavaScript errors like <code class="idl
    <p class="note" role="note"><span class="marker">Note:</span> It is not currently possible to define this behavior using Web IDL.</p>
    <h2 class="heading settled" data-level="5" id="builtins"><span class="secno">5. </span><span class="content">Builtins</span><a class="self-link" href="#builtins"></a></h2>
    <p>The JS-API defines sets of builtin functions which can be imported through <code class="idl"><a data-link-type="idl" href="#dictdef-webassemblycompileoptions" id="ref-for-dictdef-webassemblycompileoptions⑤">options</a></code> when compiling a module. WebAssembly builtin functions mirror existing JavaScript builtins, but adapt them to be useable directly as WebAssembly functions with minimal overhead.</p>
-   <p>All builtin functions are grouped into sets. Every builtin set has a unique name that <a data-link-type="dfn" href="#read-the-imports" id="ref-for-read-the-imports②">is used during import lookup</a>. All names are prefixed by the <code>wasm:</code> namespace (e.g. <code>wasm:js-string</code>).</p>
+   <p>All builtin functions are grouped into sets. Every builtin set has a <var>name</var> that is used in <code class="idl"><a data-link-type="idl" href="#dictdef-webassemblycompileoptions" id="ref-for-dictdef-webassemblycompileoptions⑥">WebAssemblyCompileOptions</a></code>, and a <var>qualified name</var> with a <code>wasm:</code> prefix that <a data-link-type="dfn" href="#read-the-imports" id="ref-for-read-the-imports②">is used during import lookup</a>.</p>
    <div class="algorithm" data-algorithm="get the builtins for a builtin set">
      To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="get-the-builtins-for-a-builtin-set">get the builtins for a builtin set</dfn> with <var>builtinSetName</var>, perform the following steps: 
     <ol>
@@ -3283,7 +3285,9 @@ They expose the same interface as native JavaScript errors like <code class="idl
       <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate①④">For each</a> <var>builtinSetName</var> of <var>builtinSetNames</var>,</p>
       <ol>
        <li data-md>
-        <p>If <var>importModuleName</var> equals <var>builtinSetName</var></p>
+        <p>Let <var>builtinSetQualifiedName</var> be <var>builtinSetName</var> prefixed with "wasm:"</p>
+       <li data-md>
+        <p>If <var>importModuleName</var> equals <var>builtinSetQualifiedName</var></p>
         <ol>
          <li data-md>
           <p>Let <var>builtins</var> be the result of <a data-link-type="dfn" href="#get-the-builtins-for-a-builtin-set" id="ref-for-get-the-builtins-for-a-builtin-set">get the builtins for a builtin set</a> <var>builtinSetName</var></p>
@@ -3380,16 +3384,17 @@ They expose the same interface as native JavaScript errors like <code class="idl
     </ol>
    </div>
    <h3 class="heading settled" data-level="5.1" id="builtins-js-string"><span class="secno">5.1. </span><span class="content">String Builtins</span><a class="self-link" href="#builtins-js-string"></a></h3>
-   <p>String builtins adapt the interface of the String builtin object. The import name for this set is <code>wasm:js-string</code>.</p>
+   <p>String builtins adapt the interface of the <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string">String</a> builtin object. The <var>name</var> for this set is <code>js-string</code>.</p>
+   <p class="note" role="note"><span class="marker">Note:</span> The algorithms in this section refer to JS builtins defined on <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string①">String</a>. These refer to the actual builtin and do not perform a dynamic lookup on the <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string②">String</a> object.</p>
    <h4 class="heading settled" data-level="5.1.1" id="builtins-js-string-abstract-ops"><span class="secno">5.1.1. </span><span class="content">Abstract operations</span><a class="self-link" href="#builtins-js-string-abstract-ops"></a></h4>
    <div class="algorithm" data-algorithm="UnwrapString">
     <p>The <dfn class="dfn-paneled" data-dfn-type="abstract-op" data-export data-lt="UnwrapString" id="abstract-opdef-unwrapstring">UnwrapString(<var>v</var>)</dfn> abstract operation, when invoked, performs the following steps:</p>
     <ol>
      <li data-md>
-      <p>If <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values③">Type</a>(<var>v</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string">String</a></p>
+      <p>If <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values③">Type</a>(<var>v</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string③">String</a></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror③">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror③">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Return <var>v</var></p>
@@ -3428,7 +3433,7 @@ They expose the same interface as native JavaScript errors like <code class="idl
      When this builtin is invoked with parameter <var>v</var>, the following steps must be run: 
     <ol>
      <li data-md>
-      <p>If <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values④">Type</a>(<var>v</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string①">String</a></p>
+      <p>If <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values④">Type</a>(<var>v</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string④">String</a></p>
       <ol>
        <li data-md>
         <p>Return 0</p>
@@ -3439,9 +3444,7 @@ They expose the same interface as native JavaScript errors like <code class="idl
    </div>
    <h4 class="heading settled" data-level="5.1.4" id="js-string-fromCharCodeArray"><span class="secno">5.1.4. </span><span class="content">fromCharCodeArray</span><a class="self-link" href="#js-string-fromCharCodeArray"></a></h4>
    <p>The <var>funcType</var> of this builtin is <code>(func (param (ref null (array (mut i16))) i32 i32) (result externref))</code>.</p>
-   <p class="note" role="note"><span class="marker">Note:</span> This function only takes a mutable i16 array defined in its own recursion group.
-If this is an issue for toolchains, we can look into how to relax the function type
-while still maintaining good performance.</p>
+   <p class="note" role="note"><span class="marker">Note:</span> This function only takes a mutable i16 array defined in its own recursion group.</p>
    <div class="algorithm" data-algorithm="js-string-fromCharCodeArray">
      When this builtin is invoked with parameters <var>array</var>, <var>start</var>, and <var>end</var>, the following steps must be run: 
     <ol>
@@ -3449,7 +3452,7 @@ while still maintaining good performance.</p>
       <p>If <var>array</var> is null</p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror④">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror④">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap①">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Let <var>length</var> be the number of elements in <var>array</var>.</p>
@@ -3457,7 +3460,7 @@ while still maintaining good performance.</p>
       <p>If <var>start</var> > <var>end</var> or <var>end</var> > <var>length</var></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑤">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑤">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap②">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Let <var>result</var> be the empty string.</p>
@@ -3481,9 +3484,7 @@ while still maintaining good performance.</p>
    </div>
    <h4 class="heading settled" data-level="5.1.5" id="js-string-intoCharCodeArray"><span class="secno">5.1.5. </span><span class="content">intoCharCodeArray</span><a class="self-link" href="#js-string-intoCharCodeArray"></a></h4>
    <p>The <var>funcType</var> of this builtin is <code>(func (param externref (ref null (array (mut i16))) i32) (result i32))</code>.</p>
-   <p class="note" role="note"><span class="marker">Note:</span> This function only takes a mutable i16 array defined in its own recursion group.
-If this is an issue for toolchains, we can look into how to relax the function type
-while still maintaining good performance.</p>
+   <p class="note" role="note"><span class="marker">Note:</span> This function only takes a mutable i16 array defined in its own recursion group.</p>
    <div class="algorithm" data-algorithm="js-string-intoCharCodeArray">
      When this builtin is invoked with parameters <var>string</var>, <var>array</var>, and <var>start</var>, the following steps must be run: 
     <ol>
@@ -3491,7 +3492,7 @@ while still maintaining good performance.</p>
       <p>If <var>array</var> is null</p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑥">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑥">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap③">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Let <var>string</var> be <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-returnifabrupt-shorthands" id="ref-for-sec-returnifabrupt-shorthands③⑤">?</a> <a data-link-type="abstract-op" href="#abstract-opdef-unwrapstring" id="ref-for-abstract-opdef-unwrapstring①">UnwrapString</a>(<var>string</var>).</p>
@@ -3500,10 +3501,10 @@ while still maintaining good performance.</p>
      <li data-md>
       <p>Let <var>arrayLength</var> be the number of elements in <var>array</var>.</p>
      <li data-md>
-      <p>If <var>start</var> + <var>length</var> > <var>arrayLength</var></p>
+      <p>If <var>start</var> + <var>stringLength</var> > <var>arrayLength</var></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑦">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑦">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap④">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Let <var>i</var> be 0.</p>
@@ -3539,7 +3540,7 @@ while still maintaining good performance.</p>
       <p>If <var>v</var> > 0x10ffff</p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑧">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑧">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap⑤">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Return <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-returnifabrupt-shorthands" id="ref-for-sec-returnifabrupt-shorthands③⑥">!</a> <a data-link-type="abstract-op" href="https://tc39.es/ecma262/multipage/abstract-operations.html#sec-call" id="ref-for-sec-call③">Call</a>(<a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-string.fromcodepoint" id="ref-for-sec-string.fromcodepoint">String.fromCodePoint</a>, undefined, « <a data-link-type="dfn" href="#tojsvalue" id="ref-for-tojsvalue⑨">ToJSValue</a>(<var>v</var>) »).</p>
@@ -3558,7 +3559,7 @@ while still maintaining good performance.</p>
       <p>If <var>index</var> >= <var>length</var></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑨">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror⑨">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap⑥">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Return <a data-link-type="abstract-op" href="#abstract-opdef-charcodeat" id="ref-for-abstract-opdef-charcodeat①">CharCodeAt</a>(<var>string</var>, <var>index</var>).</p>
@@ -3577,7 +3578,7 @@ while still maintaining good performance.</p>
       <p>If <var>index</var> >= <var>length</var></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror①⓪">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror①⓪">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap⑦">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>Return <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-returnifabrupt-shorthands" id="ref-for-sec-returnifabrupt-shorthands③⑨">!</a> <a data-link-type="abstract-op" href="https://tc39.es/ecma262/multipage/abstract-operations.html#sec-call" id="ref-for-sec-call④">Call</a>(<a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-string.prototype.codepointat" id="ref-for-sec-string.prototype.codepointat">String.prototype.codePointAt</a>, <var>string</var>, « <a data-link-type="dfn" href="#tojsvalue" id="ref-for-tojsvalue①⓪">ToJSValue</a>(<var>index</var>) »).</p>
@@ -3633,16 +3634,16 @@ while still maintaining good performance.</p>
     <p>When this builtin is invoked with parameters <var>first</var> and <var>second</var>, the following steps must be run:</p>
     <ol>
      <li data-md>
-      <p>If <var>first</var> is not null and <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values⑤">Type</a>(<var>first</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string②">String</a></p>
+      <p>If <var>first</var> is not null and <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values⑤">Type</a>(<var>first</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string⑤">String</a></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror①①">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror①①">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap⑧">trap</a> was executed.</p>
       </ol>
      <li data-md>
-      <p>If <var>second</var> is not null and <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values⑥">Type</a>(<var>second</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string③">String</a></p>
+      <p>If <var>second</var> is not null and <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values" id="ref-for-sec-ecmascript-data-types-and-values⑥">Type</a>(<var>second</var>) is not <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#string" id="ref-for-string⑥">String</a></p>
       <ol>
        <li data-md>
-        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror①②">RuntimeError</a></code> exception. TODO: this needs to not be catchable, like a trap.</p>
+        <p>Throw a <code class="idl"><a data-link-type="idl" href="#exceptiondef-runtimeerror" id="ref-for-exceptiondef-runtimeerror①②">RuntimeError</a></code> exception as if a <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap" id="ref-for-syntax-trap⑨">trap</a> was executed.</p>
       </ol>
      <li data-md>
       <p>If <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-returnifabrupt-shorthands" id="ref-for-sec-returnifabrupt-shorthands④⑥">!</a> <a data-link-type="dfn" href="https://tc39.github.io/ecma262/#sec-isstrictlyequal" id="ref-for-sec-isstrictlyequal">IsStrictlyEqual</a>(<var>first</var>, <var>second</var>) is true</p>
@@ -4220,6 +4221,7 @@ In practice, an implementation may run out of resources for valid modules below 
      <li><span class="dfn-paneled" id="672fca90">tag type</span>
      <li><span class="dfn-paneled" id="c42599d7">tag_type</span>
      <li><span class="dfn-paneled" id="d388e2b5">throw_ref</span>
+     <li><span class="dfn-paneled" id="5672836e">trap</span>
      <li><span class="dfn-paneled" id="25439d77">v128</span>
      <li><span class="dfn-paneled" id="e18130bf">v128.const</span>
      <li><span class="dfn-paneled" id="5ce71be2">val_default</span>
@@ -4646,7 +4648,7 @@ let dfnPanelData = {
 "0656fbb6": {"dfnID":"0656fbb6","dfnText":"+\u221e","external":true,"refSections":[{"refs":[{"id":"ref-for-syntax-float"},{"id":"ref-for-syntax-float\u2460"},{"id":"ref-for-syntax-float\u2461"},{"id":"ref-for-syntax-float\u2462"},{"id":"ref-for-syntax-float\u2463"},{"id":"ref-for-syntax-float\u2464"},{"id":"ref-for-syntax-float\u2465"},{"id":"ref-for-syntax-float\u2466"},{"id":"ref-for-syntax-float\u2467"},{"id":"ref-for-syntax-float\u2468"},{"id":"ref-for-syntax-float\u2460\u24ea"},{"id":"ref-for-syntax-float\u2460\u2460"}],"title":"4.6. Exported Functions"}],"url":"https://webassembly.github.io/spec/core/syntax/values.html#syntax-float"},
 "068e0385": {"dfnID":"068e0385","dfnText":"tag address","external":true,"refSections":[{"refs":[{"id":"ref-for-syntax-tagaddr"}],"title":"3.2. WebAssembly JS Object Caches"},{"refs":[{"id":"ref-for-syntax-tagaddr\u2460"},{"id":"ref-for-syntax-tagaddr\u2461"}],"title":"4.7. Tags"},{"refs":[{"id":"ref-for-syntax-tagaddr\u2462"},{"id":"ref-for-syntax-tagaddr\u2463"}],"title":"4.7.1. Tag types"},{"refs":[{"id":"ref-for-syntax-tagaddr\u2464"}],"title":"4.9.1. JavaScript exceptions"}],"url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-tagaddr"},
 "06930779": {"dfnID":"06930779","dfnText":"custom section","external":true,"refSections":[{"refs":[{"id":"ref-for-custom-section"}],"title":"4.1. Modules"}],"url":"https://webassembly.github.io/spec/core/binary/modules.html#custom-section"},
-"0698d556": {"dfnID":"0698d556","dfnText":"string","external":true,"refSections":[{"refs":[{"id":"ref-for-string"}],"title":"5.1.1. Abstract operations"},{"refs":[{"id":"ref-for-string\u2460"}],"title":"5.1.3. test"},{"refs":[{"id":"ref-for-string\u2461"},{"id":"ref-for-string\u2462"}],"title":"5.1.13. equals"}],"url":"https://infra.spec.whatwg.org/#string"},
+"0698d556": {"dfnID":"0698d556","dfnText":"string","external":true,"refSections":[{"refs":[{"id":"ref-for-string"},{"id":"ref-for-string\u2460"},{"id":"ref-for-string\u2461"}],"title":"5.1. String Builtins"},{"refs":[{"id":"ref-for-string\u2462"}],"title":"5.1.1. Abstract operations"},{"refs":[{"id":"ref-for-string\u2463"}],"title":"5.1.3. test"},{"refs":[{"id":"ref-for-string\u2464"},{"id":"ref-for-string\u2465"}],"title":"5.1.13. equals"}],"url":"https://infra.spec.whatwg.org/#string"},
 "06f63be9": {"dfnID":"06f63be9","dfnText":"ToInt32","external":true,"refSections":[{"refs":[{"id":"ref-for-sec-toint32"},{"id":"ref-for-sec-toint32\u2460"},{"id":"ref-for-sec-toint32\u2461"}],"title":"4.6. Exported Functions"}],"url":"https://tc39.es/ecma262/multipage/abstract-operations.html#sec-toint32"},
 "08301a78": {"dfnID":"08301a78","dfnText":"table_read","external":true,"refSections":[{"refs":[{"id":"ref-for-embed-table-read"}],"title":"4.4. Tables"}],"url":"https://webassembly.github.io/spec/core/appendix/embedding.html#embed-table-read"},
 "09d78e0f": {"dfnID":"09d78e0f","dfnText":"extern","external":true,"refSections":[{"refs":[{"id":"ref-for-heap-types"},{"id":"ref-for-heap-types\u2460"},{"id":"ref-for-heap-types\u2461"}],"title":"4.6. Exported Functions"}],"url":"https://webassembly.github.io/spec/core/syntax/types.html#heap-types"},
@@ -4698,6 +4700,7 @@ let dfnPanelData = {
 "53275e46": {"dfnID":"53275e46","dfnText":"append","external":true,"refSections":[{"refs":[{"id":"ref-for-list-append"},{"id":"ref-for-list-append\u2460"},{"id":"ref-for-list-append\u2461"},{"id":"ref-for-list-append\u2462"},{"id":"ref-for-list-append\u2463"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-list-append\u2464"},{"id":"ref-for-list-append\u2465"},{"id":"ref-for-list-append\u2466"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-list-append\u2467"},{"id":"ref-for-list-append\u2468"},{"id":"ref-for-list-append\u2460\u24ea"},{"id":"ref-for-list-append\u2460\u2460"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-list-append\u2460\u2461"}],"title":"4.7.1. Tag types"},{"refs":[{"id":"ref-for-list-append\u2460\u2462"}],"title":"4.9. Exceptions"}],"url":"https://infra.spec.whatwg.org/#list-append"},
 "5372cca8": {"dfnID":"5372cca8","dfnText":"boolean","external":true,"refSections":[{"refs":[{"id":"ref-for-idl-boolean"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-idl-boolean\u2460"}],"title":"4.5. Globals"},{"refs":[{"id":"ref-for-idl-boolean\u2461"},{"id":"ref-for-idl-boolean\u2462"}],"title":"4.9. Exceptions"}],"url":"https://webidl.spec.whatwg.org/#idl-boolean"},
 "56473266": {"dfnID":"56473266","dfnText":"exn_read","external":true,"refSections":[{"refs":[{"id":"ref-for-embed-exn-read"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-embed-exn-read\u2460"},{"id":"ref-for-embed-exn-read\u2461"}],"title":"4.9. Exceptions"}],"url":"https://webassembly.github.io/spec/core/appendix/embedding.html#embed-exn-read"},
+"5672836e": {"dfnID":"5672836e","dfnText":"trap","external":true,"refSections":[{"refs":[{"id":"ref-for-syntax-trap"}],"title":"5.1.1. Abstract operations"},{"refs":[{"id":"ref-for-syntax-trap\u2460"},{"id":"ref-for-syntax-trap\u2461"}],"title":"5.1.4. fromCharCodeArray"},{"refs":[{"id":"ref-for-syntax-trap\u2462"},{"id":"ref-for-syntax-trap\u2463"}],"title":"5.1.5. intoCharCodeArray"},{"refs":[{"id":"ref-for-syntax-trap\u2464"}],"title":"5.1.7. fromCodePoint"},{"refs":[{"id":"ref-for-syntax-trap\u2465"}],"title":"5.1.8. charCodeAt"},{"refs":[{"id":"ref-for-syntax-trap\u2466"}],"title":"5.1.9. codePointAt"},{"refs":[{"id":"ref-for-syntax-trap\u2467"},{"id":"ref-for-syntax-trap\u2468"}],"title":"5.1.13. equals"}],"url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap"},
 "56f81a8e": {"dfnID":"56f81a8e","dfnText":"new","external":true,"refSections":[{"refs":[{"id":"ref-for-new"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-new\u2460"}],"title":"4.3. Memories"},{"refs":[{"id":"ref-for-new\u2461"}],"title":"4.4. Tables"},{"refs":[{"id":"ref-for-new\u2462"}],"title":"4.5. Globals"},{"refs":[{"id":"ref-for-new\u2463"}],"title":"4.7.1. Tag types"},{"refs":[{"id":"ref-for-new\u2464"}],"title":"4.9. Exceptions"}],"url":"https://webidl.spec.whatwg.org/#new"},
 "58788f9d": {"dfnID":"58788f9d","dfnText":"TypeError","external":true,"refSections":[{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2461"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2462"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2463"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2464"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2465"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2466"}],"title":"4.4. Tables"},{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2467"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2468"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u24ea"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2460"}],"title":"4.5. Globals"},{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2461"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2462"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2463"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2464"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2465"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2466"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2467"}],"title":"4.8. Garbage Collected Objects"},{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2460\u2468"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2461\u24ea"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2461\u2460"},{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2461\u2461"}],"title":"4.9. Exceptions"},{"refs":[{"id":"ref-for-sec-native-error-types-used-in-this-standard-typeerror\u2461\u2462"}],"title":"4.10. Error Objects"}],"url":"https://tc39.github.io/ecma262/#sec-native-error-types-used-in-this-standard-typeerror"},
 "5b7339ce": {"dfnID":"5b7339ce","dfnText":"GetMethod","external":true,"refSections":[{"refs":[{"id":"ref-for-sec-getmethod"}],"title":"4.6. Exported Functions"}],"url":"https://tc39.es/ecma262/multipage/abstract-operations.html#sec-getmethod"},
@@ -4841,7 +4844,7 @@ let dfnPanelData = {
 "dictdef-moduleimportdescriptor": {"dfnID":"dictdef-moduleimportdescriptor","dfnText":"ModuleImportDescriptor","external":false,"refSections":[{"refs":[{"id":"ref-for-dictdef-moduleimportdescriptor"}],"title":"4.1. Modules"}],"url":"#dictdef-moduleimportdescriptor"},
 "dictdef-tabledescriptor": {"dfnID":"dictdef-tabledescriptor","dfnText":"TableDescriptor","external":false,"refSections":[{"refs":[{"id":"ref-for-dictdef-tabledescriptor"}],"title":"4.4. Tables"}],"url":"#dictdef-tabledescriptor"},
 "dictdef-tagtype": {"dfnID":"dictdef-tagtype","dfnText":"TagType","external":false,"refSections":[{"refs":[{"id":"ref-for-dictdef-tagtype"}],"title":"4.7.1. Tag types"}],"url":"#dictdef-tagtype"},
-"dictdef-webassemblycompileoptions": {"dfnID":"dictdef-webassemblycompileoptions","dfnText":"WebAssemblyCompileOptions","external":false,"refSections":[{"refs":[{"id":"ref-for-dictdef-webassemblycompileoptions"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2460"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2461"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2462"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-dictdef-webassemblycompileoptions\u2463"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-dictdef-webassemblycompileoptions\u2464"}],"title":"5. Builtins"}],"url":"#dictdef-webassemblycompileoptions"},
+"dictdef-webassemblycompileoptions": {"dfnID":"dictdef-webassemblycompileoptions","dfnText":"WebAssemblyCompileOptions","external":false,"refSections":[{"refs":[{"id":"ref-for-dictdef-webassemblycompileoptions"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2460"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2461"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2462"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-dictdef-webassemblycompileoptions\u2463"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-dictdef-webassemblycompileoptions\u2464"},{"id":"ref-for-dictdef-webassemblycompileoptions\u2465"}],"title":"5. Builtins"}],"url":"#dictdef-webassemblycompileoptions"},
 "dictdef-webassemblyinstantiatedsource": {"dfnID":"dictdef-webassemblyinstantiatedsource","dfnText":"WebAssemblyInstantiatedSource","external":false,"refSections":[{"refs":[{"id":"ref-for-dictdef-webassemblyinstantiatedsource"},{"id":"ref-for-dictdef-webassemblyinstantiatedsource\u2460"}],"title":"4. The WebAssembly Namespace"}],"url":"#dictdef-webassemblyinstantiatedsource"},
 "dom-exception-exception": {"dfnID":"dom-exception-exception","dfnText":"new Exception(exceptionTag, payload, options)","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-exception-exception"}],"title":"4.9. Exceptions"}],"url":"#dom-exception-exception"},
 "dom-exception-exception-exceptiontag-payload-options-exceptiontag": {"dfnID":"dom-exception-exception-exceptiontag-payload-options-exceptiontag","dfnText":"exceptionTag","external":false,"refSections":[],"url":"#dom-exception-exception-exceptiontag-payload-options-exceptiontag"},
@@ -5685,6 +5688,7 @@ let refsData = {
 "https://webassembly.github.io/spec/core/exec/runtime.html#syntax-structaddr": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"struct address","type":"dfn","url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-structaddr"},
 "https://webassembly.github.io/spec/core/exec/runtime.html#syntax-tableaddr": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"table address","type":"dfn","url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-tableaddr"},
 "https://webassembly.github.io/spec/core/exec/runtime.html#syntax-tagaddr": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"tag address","type":"dfn","url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-tagaddr"},
+"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"trap","type":"dfn","url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap"},
 "https://webassembly.github.io/spec/core/exec/runtime.html#table-instances": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"table instance","type":"dfn","url":"https://webassembly.github.io/spec/core/exec/runtime.html#table-instances"},
 "https://webassembly.github.io/spec/core/exec/runtime.html#values": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"i32.const","type":"dfn","url":"https://webassembly.github.io/spec/core/exec/runtime.html#values"},
 "https://webassembly.github.io/spec/core/syntax/conventions.html#grammar-notation": {"export":true,"for_":[],"level":"","normative":true,"shortname":"webassembly","spec":"webassembly","status":"anchor-block","text":"sequence","type":"dfn","url":"https://webassembly.github.io/spec/core/syntax/conventions.html#grammar-notation"},
