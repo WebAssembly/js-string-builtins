@@ -6,7 +6,7 @@
   <meta content="ED" name="w3c-status">
   <meta content="Bikeshed version 6270e4735, updated Tue Aug 6 12:12:30 2024 -0700" name="generator">
   <link href="https://www.w3.org/TR/wasm-js-api-2/" rel="canonical">
-  <meta content="1937e008a5010b9b5c72519b46e702f87ed0c28a" name="revision">
+  <meta content="7851a7832b14ec0ddb5103fb003dddaec89df13f" name="revision">
   <meta content="dark light" name="color-scheme">
 <style>
 emu-const {
@@ -743,7 +743,7 @@ var[data-var-color="6"] { --var-vg: #FFBCF2; }
   <div class="head">
    <p data-fill-with="logo"><a class="logo" href="https://www.w3.org/"> <img alt="W3C" height="48" src="https://www.w3.org/StyleSheets/TR/2021/logos/W3C" width="72"> </a> </p>
    <h1 class="p-name no-ref" id="title">WebAssembly JavaScript Interface</h1>
-   <p id="w3c-state"><a href="https://www.w3.org/standards/types#ED">Editor’s Draft</a>, <time class="dt-updated" datetime="2024-08-21">21 August 2024</time></p>
+   <p id="w3c-state"><a href="https://www.w3.org/standards/types#ED">Editor’s Draft</a>, <time class="dt-updated" datetime="2024-08-23">23 August 2024</time></p>
    <details open>
     <summary>More details about this document</summary>
     <div data-fill-with="spec-metadata">
@@ -1130,6 +1130,8 @@ This mapping is used to ensure that, for a given <a data-link-type="dfn" href="h
       <ol>
        <li data-md>
         <p class="assertion">Assert: <var>builtinOrStringImports</var> does not contain <var>builtinSetName</var></p>
+       <li data-md>
+        <p>If <var>builtinSetName</var> does not refer to a builtin set, then <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#iteration-continue" id="ref-for-iteration-continue①">continue</a>.</p>
        <li data-md>
         <p>Let <var>exportsObject</var> be the result of <a data-link-type="dfn" href="#instantiate-a-builtin-set" id="ref-for-instantiate-a-builtin-set">instantiate a builtin set</a> with <var>builtinSetName</var></p>
        <li data-md>
@@ -1580,9 +1582,9 @@ If this throws an exception, catch it, <a data-link-type="dfn" href="https://web
       <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate⑥">For each</a> (<var>moduleName</var>, <var>name</var>, <var>type</var>) of <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/appendix/embedding.html#embed-module-imports" id="ref-for-embed-module-imports③">module_imports</a>(<var>module</var>),</p>
       <ol>
        <li data-md>
-        <p>If <a data-link-type="dfn" href="#find-a-builtin" id="ref-for-find-a-builtin">find a builtin</a> for (<var>moduleName</var>, <var>name</var>, <var>type</var>) and <var>builtinSetNames</var> is not null, then <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#iteration-continue" id="ref-for-iteration-continue①">continue</a></p>
+        <p>If <a data-link-type="dfn" href="#find-a-builtin" id="ref-for-find-a-builtin">find a builtin</a> for (<var>moduleName</var>, <var>name</var>, <var>type</var>) and <var>builtinSetNames</var> is not null, then <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#iteration-continue" id="ref-for-iteration-continue②">continue</a></p>
        <li data-md>
-        <p>If <var>importedStringModule</var> is not null and <var>moduleName</var> equals <var>importedStringModule</var>, then <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#iteration-continue" id="ref-for-iteration-continue②">continue</a></p>
+        <p>If <var>importedStringModule</var> is not null and <var>moduleName</var> equals <var>importedStringModule</var>, then <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#iteration-continue" id="ref-for-iteration-continue③">continue</a></p>
        <li data-md>
         <p>Let <var>kind</var> be the <a data-link-type="dfn" href="#string-value-of-the-extern-type" id="ref-for-string-value-of-the-extern-type①">string value of the extern type</a> <var>type</var>.</p>
        <li data-md>
@@ -3285,6 +3287,8 @@ They expose the same interface as native JavaScript errors like <code class="idl
       <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate①④">For each</a> <var>builtinSetName</var> of <var>builtinSetNames</var>,</p>
       <ol>
        <li data-md>
+        <p>If <var>builtinSetName</var> does not refer to a builtin set, then <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#iteration-continue" id="ref-for-iteration-continue④">continue</a>.</p>
+       <li data-md>
         <p>Let <var>builtinSetQualifiedName</var> be <var>builtinSetName</var> prefixed with "wasm:"</p>
        <li data-md>
         <p>If <var>importModuleName</var> equals <var>builtinSetQualifiedName</var></p>
@@ -3310,12 +3314,6 @@ They expose the same interface as native JavaScript errors like <code class="idl
     <ol>
      <li data-md>
       <p>If <var>builtinSetNames</var> contains any duplicates, return false.</p>
-     <li data-md>
-      <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate①⑥">For each</a> <var>builtinSetName</var> of <var>builtinSetNames</var>,</p>
-      <ol>
-       <li data-md>
-        <p>If <var>builtinSetName</var> does not equal the name of one of the builtin sets defined in this section, return false.</p>
-      </ol>
      <li data-md>
       <p>Return false.</p>
     </ol>
@@ -3347,7 +3345,7 @@ They expose the same interface as native JavaScript errors like <code class="idl
         <p>If <var>externtype</var> is of the form <a data-link-type="dfn" href="https://webassembly.github.io/spec/core/syntax/types.html#external-types" id="ref-for-external-types①⑥">func</a> <var>functype</var>,</p>
       </ol>
      <li data-md>
-      <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate①⑦">For each</a> (<var>name</var>, <var>funcType</var>, <var>steps</var>) of <var>builtins</var>,</p>
+      <p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate①⑥">For each</a> (<var>name</var>, <var>funcType</var>, <var>steps</var>) of <var>builtins</var>,</p>
       <ol>
        <li data-md>
         <p>Let <var>funcaddr</var> be the result fo <a data-link-type="dfn" href="#create-a-builtin-function" id="ref-for-create-a-builtin-function">create a builtin function</a> with <var>funcType</var> and <var>steps</var></p>
@@ -4966,7 +4964,7 @@ let dfnPanelData = {
 "exported-function-cache": {"dfnID":"exported-function-cache","dfnText":"Exported Function cache","external":false,"refSections":[{"refs":[{"id":"ref-for-exported-function-cache"}],"title":"4.6. Exported Functions"}],"url":"#exported-function-cache"},
 "exported-gc-object": {"dfnID":"exported-gc-object","dfnText":"Exported GC Object","external":false,"refSections":[{"refs":[{"id":"ref-for-exported-gc-object"}],"title":"3.2. WebAssembly JS Object Caches"},{"refs":[{"id":"ref-for-exported-gc-object\u2460"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-exported-gc-object\u2461"},{"id":"ref-for-exported-gc-object\u2462"},{"id":"ref-for-exported-gc-object\u2463"},{"id":"ref-for-exported-gc-object\u2464"}],"title":"4.8. Garbage Collected Objects"}],"url":"#exported-gc-object"},
 "exported-gc-object-cache": {"dfnID":"exported-gc-object-cache","dfnText":"Exported GC Object cache","external":false,"refSections":[{"refs":[{"id":"ref-for-exported-gc-object-cache"}],"title":"4.8. Garbage Collected Objects"}],"url":"#exported-gc-object-cache"},
-"f02cd417": {"dfnID":"f02cd417","dfnText":"iterate (for list)","external":true,"refSections":[{"refs":[{"id":"ref-for-list-iterate"},{"id":"ref-for-list-iterate\u2460"},{"id":"ref-for-list-iterate\u2461"},{"id":"ref-for-list-iterate\u2462"},{"id":"ref-for-list-iterate\u2463"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-list-iterate\u2464"},{"id":"ref-for-list-iterate\u2465"},{"id":"ref-for-list-iterate\u2466"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-list-iterate\u2467"},{"id":"ref-for-list-iterate\u2468"},{"id":"ref-for-list-iterate\u2460\u24ea"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2460"}],"title":"4.7.1. Tag types"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2461"}],"title":"4.9. Exceptions"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2462"}],"title":"4.10. Error Objects"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2463"},{"id":"ref-for-list-iterate\u2460\u2464"},{"id":"ref-for-list-iterate\u2460\u2465"},{"id":"ref-for-list-iterate\u2460\u2466"}],"title":"5. Builtins"}],"url":"https://infra.spec.whatwg.org/#list-iterate"},
+"f02cd417": {"dfnID":"f02cd417","dfnText":"iterate (for list)","external":true,"refSections":[{"refs":[{"id":"ref-for-list-iterate"},{"id":"ref-for-list-iterate\u2460"},{"id":"ref-for-list-iterate\u2461"},{"id":"ref-for-list-iterate\u2462"},{"id":"ref-for-list-iterate\u2463"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-list-iterate\u2464"},{"id":"ref-for-list-iterate\u2465"},{"id":"ref-for-list-iterate\u2466"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-list-iterate\u2467"},{"id":"ref-for-list-iterate\u2468"},{"id":"ref-for-list-iterate\u2460\u24ea"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2460"}],"title":"4.7.1. Tag types"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2461"}],"title":"4.9. Exceptions"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2462"}],"title":"4.10. Error Objects"},{"refs":[{"id":"ref-for-list-iterate\u2460\u2463"},{"id":"ref-for-list-iterate\u2460\u2464"},{"id":"ref-for-list-iterate\u2460\u2465"}],"title":"5. Builtins"}],"url":"https://infra.spec.whatwg.org/#list-iterate"},
 "f0590fd3": {"dfnID":"f0590fd3","dfnText":"string.fromcharcode","external":true,"refSections":[{"refs":[{"id":"ref-for-sec-string.fromcharcode"}],"title":"5.1.1. Abstract operations"}],"url":"https://tc39.github.io/ecma262/#sec-string.fromcharcode"},
 "f06ddd8a": {"dfnID":"f06ddd8a","dfnText":"memaddrs","external":true,"refSections":[{"refs":[{"id":"ref-for-syntax-moduleinst"},{"id":"ref-for-syntax-moduleinst\u2460"}],"title":"4.3. Memories"}],"url":"https://webassembly.github.io/spec/core/exec/runtime.html#syntax-moduleinst"},
 "f0c8810c": {"dfnID":"f0c8810c","dfnText":"import","external":true,"refSections":[{"refs":[{"id":"ref-for-syntax-import"}],"title":"8. Security and Privacy Considerations"}],"url":"https://webassembly.github.io/spec/core/syntax/modules.html#syntax-import"},
@@ -4977,7 +4975,7 @@ let dfnPanelData = {
 "f3597ae0": {"dfnID":"f3597ae0","dfnText":"exn_alloc","external":true,"refSections":[{"refs":[{"id":"ref-for-embed-exn-alloc"}],"title":"4.6. Exported Functions"},{"refs":[{"id":"ref-for-embed-exn-alloc\u2460"}],"title":"4.9. Exceptions"}],"url":"https://webassembly.github.io/spec/core/appendix/embedding.html#embed-exn-alloc"},
 "f3aaa883": {"dfnID":"f3aaa883","dfnText":"module_validate","external":true,"refSections":[{"refs":[{"id":"ref-for-embed-module-validate"}],"title":"4. The WebAssembly Namespace"}],"url":"https://webassembly.github.io/spec/core/appendix/embedding.html#embed-module-validate"},
 "f56c24ad": {"dfnID":"f56c24ad","dfnText":"imports","external":true,"refSections":[{"refs":[{"id":"ref-for-syntax-module"},{"id":"ref-for-syntax-module\u2460"}],"title":"4. The WebAssembly Namespace"}],"url":"https://webassembly.github.io/spec/core/syntax/modules.html#syntax-module"},
-"f937b7b6": {"dfnID":"f937b7b6","dfnText":"continue","external":true,"refSections":[{"refs":[{"id":"ref-for-iteration-continue"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-iteration-continue\u2460"},{"id":"ref-for-iteration-continue\u2461"}],"title":"4.1. Modules"}],"url":"https://infra.spec.whatwg.org/#iteration-continue"},
+"f937b7b6": {"dfnID":"f937b7b6","dfnText":"continue","external":true,"refSections":[{"refs":[{"id":"ref-for-iteration-continue"},{"id":"ref-for-iteration-continue\u2460"}],"title":"4. The WebAssembly Namespace"},{"refs":[{"id":"ref-for-iteration-continue\u2461"},{"id":"ref-for-iteration-continue\u2462"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-iteration-continue\u2463"}],"title":"5. Builtins"}],"url":"https://infra.spec.whatwg.org/#iteration-continue"},
 "f98ab0c2": {"dfnID":"f98ab0c2","dfnText":"LegacyNamespace","external":true,"refSections":[{"refs":[{"id":"ref-for-LegacyNamespace"}],"title":"4.1. Modules"},{"refs":[{"id":"ref-for-LegacyNamespace\u2460"}],"title":"4.2. Instances"},{"refs":[{"id":"ref-for-LegacyNamespace\u2461"}],"title":"4.3. Memories"},{"refs":[{"id":"ref-for-LegacyNamespace\u2462"}],"title":"4.4. Tables"},{"refs":[{"id":"ref-for-LegacyNamespace\u2463"}],"title":"4.5. Globals"},{"refs":[{"id":"ref-for-LegacyNamespace\u2464"}],"title":"4.7.1. Tag types"},{"refs":[{"id":"ref-for-LegacyNamespace\u2465"}],"title":"4.9. Exceptions"}],"url":"https://webidl.spec.whatwg.org/#LegacyNamespace"},
 "f9dbc1a8": {"dfnID":"f9dbc1a8","dfnText":"nativeerror object structure","external":true,"refSections":[{"refs":[{"id":"ref-for-sec-nativeerror-object-structure"}],"title":"4.10. Error Objects"}],"url":"https://tc39.github.io/ecma262/#sec-nativeerror-object-structure"},
 "fa5c4242": {"dfnID":"fa5c4242","dfnText":"agent cluster","external":true,"refSections":[{"refs":[{"id":"ref-for-sec-agent-clusters"}],"title":"3.1. Interaction of the WebAssembly Store with JavaScript"}],"url":"https://tc39.es/ecma262/multipage/executable-code-and-execution-contexts.html#sec-agent-clusters"},
